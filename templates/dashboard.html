@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Dummy Bank | Dashboard</title>
+    <title>Dummy Bank | Assistant</title>
 
     <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -10,41 +10,56 @@
 </head>
 <body class="bg-light">
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+<nav class="navbar navbar-dark bg-dark">
     <div class="container-fluid">
-        <span class="navbar-brand">Dummy Bank</span>
-
-        <div class="ms-auto">
-            <span class="navbar-text me-3">Welcome, {{ username }}</span>
+        <span class="navbar-brand mb-0 h1 text-center">
+            <img src="../static/images/bank_logo.png" alt="" width="100" height="100">
+            Dummy Bank</span>
+        <div class="d-flex align-items-center">
+            <span class="text-white me-3">Hi, {{ username }}</span>
             <a href="/logout" class="btn btn-outline-light btn-sm">Logout</a>
         </div>
     </div>
 </nav>
 
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
+<div class="container mt-4 d-flex justify-content-center">
+    <div class="chat-container shadow">
 
-            <!-- Chatbot Card -->
-            <div class="card shadow chatbot-card">
-                <div class="card-header bg-primary text-white">
-                    Bank Assistant 💬
-                </div>
-
-                <div class="card-body chat-body" id="messages">
-                    <!-- Starter message -->
-                    <div class="bot-message">
-                        Hi 👋 I am your virtual banking assistant. How can I help you today?
-                    </div>
-                </div>
-
-                <div class="card-footer d-flex">
-                    <input id="userInput" class="form-control me-2" placeholder="Type your message..." />
-                    <button class="btn btn-primary" onclick="sendMessage()">Send</button>
-                </div>
+        <!-- Header -->
+        <div class="chat-header">
+            <img src="../static/images/bot.png" class="bot-avatar">
+            <div>
+                <div class="fw-bold">Bank Assistant</div>
+                <small class="text-success">● Online</small>
             </div>
-
         </div>
+
+        <!-- Messages -->
+        <div class="chat-body" id="messages">
+            <div class="bot-message">
+                Hi 👋 I am your virtual banking assistant.  
+                How can I help you today?
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <button onclick="quickSend('Check balance')">💰 Balance</button>
+            <button onclick="quickSend('Loan details')">🏦 Loans</button>
+            <button onclick="quickSend('Help')">❓ Help</button>
+        </div>
+
+        <!-- Typing Indicator -->
+        <div id="typing" class="typing-indicator d-none">
+            <span></span><span></span><span></span>
+        </div>
+
+        <!-- Input -->
+        <div class="chat-input">
+            <input id="userInput" placeholder="Type your message..." onkeydown="handleEnter(event)">
+            <button onclick="sendMessage()">➤</button>
+        </div>
+
     </div>
 </div>
 
