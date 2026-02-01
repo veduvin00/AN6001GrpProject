@@ -1,47 +1,103 @@
+/* ============================
+   SCREEN CONTEXT (PHASE 1)
+============================ */
+
+let currentView = "assistant";
+
+document
+  .querySelectorAll('button[data-bs-toggle="tab"]')
+  .forEach(btn => {
+    btn.addEventListener("shown.bs.tab", e => {
+      currentView = e.target.textContent.trim().toLowerCase();
+      console.log("Current view:", currentView);
+    });
+  });
+
+/* ============================
+   CHAT INPUT HANDLERS
+============================ */
+
 function handleEnter(e) {
-    if (e.key === "Enter") sendMessage();
+  if (e.key === "Enter") {
+    e.preventDefault();
+    sendMessage();
+  }
 }
 
 function quickSend(text) {
-    document.getElementById("userInput").value = text;
-    sendMessage();
+  const input = document.getElementById("userInput");
+  input.value = text;
+  sendMessage();
 }
 
-function sendMessage() {
-    const input = document.getElementById("userInput");
-    const message = input.value.trim();
-    if (!message) return;
+/* ============================
+   MESSAGE RENDERING
+============================ */
 
-    const messages = document.getElementById("messages");
-    const typing = document.getElementById("typing");
+function addUserMessage(text) {
+  const messages = document.getElementById("messages");
+  const div = document.createElement("div");
+  div.className = "user-message";
+  div.textContent = text;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
 
-    // User bubble
-    const userDiv = document.createElement("div");
-    userDiv.className = "user-message";
-    userDiv.innerText = message;
-    messages.appendChild(userDiv);
+function addBotMessage(text) {
+  const messages = document.getElementById("messages");
+  const div = document.createElement("div");
+  div.className = "bot-message";
+  div.textContent = text;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
 
-    messages.scrollTop = messages.scrollHeight;
-    input.value = "";
+/* ============================
+   SEND MESSAGE
+============================ */
 
-    typing.classList.remove("d-none");
+async function sendMessage() {
+  const input = document.getElementById("userInput");
+  const message = input.value.trim();
+  if (!message) return;
 
-    setTimeout(() => {
-        fetch("/chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message })
-        })
-        .then(res => res.json())
-        .then(data => {
-            typing.classList.add("d-none");
+  // Show user message
+  addUserMessage(message);
+  input.value = "";
 
-            const botDiv = document.createElement("div");
-            botDiv.className = "bot-message";
-            botDiv.innerText = data.reply;
-            messages.appendChild(botDiv);
+  // Show typing indicator
+  const typing = document.getElementById("typing");
+  typing.classList.remove("d-none");
 
-            messages.scrollTop = messages.scrollHeight;
-        });
-    }, 800); // bot "thinking" delay
+  try {
+    const response = await fetch("/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: message,
+        context: {
+          view: currentView
+        }
+      })
+    });
+
+    const data = await response.json();
+
+    // Hide typing indicator
+    typing.classList.add("d-none");
+
+    // Render bot reply
+    if (data.reply) {
+      addBotMessage(data.reply);
+    } else {
+      addBotMessage("I didn't understand that. Please try again.");
+    }
+
+  } catch (error) {
+    typing.classList.add("d-none");
+    console.error("Chat error:", error);
+    addBotMessage("Something went wrong. Please try again.");
+  }
 }

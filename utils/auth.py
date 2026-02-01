@@ -1,11 +1,8 @@
-import pandas as pd
+from utils.data_store import load_user
 
-USERS_CSV = "data/users.csv"
-
-def validate_user(username, password):
-    users = pd.read_csv(USERS_CSV)
-    match = users[
-        (users["username"] == username) &
-        (users["password"] == password)
-    ]
-    return not match.empty
+def authenticate(username, password):
+    user = load_user()
+    return (
+        user["username"] == username and
+        user["password"] == password
+    )
