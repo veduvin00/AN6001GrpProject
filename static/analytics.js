@@ -11,17 +11,41 @@ async function loadCategoryChart() {
   const res = await fetch("/analytics/category");
   const data = await res.json();
 
-  if (Object.keys(data).length === 0) return;
+  if (!data || Object.keys(data).length === 0) {
+    canvas.parentElement.innerHTML =
+      "<p class='text-muted text-center'>No category data available</p>";
+    return;
+  }
 
   if (categoryChart) categoryChart.destroy();
+
+  const labels = Object.keys(data);
+  const values = Object.values(data);
+  const total = values.reduce((a, b) => a + b, 0);
 
   categoryChart = new Chart(canvas, {
     type: "pie",
     data: {
-      labels: Object.keys(data),
+      labels: labels,
       datasets: [{
-        data: Object.values(data)
+        data: values
       }]
+    },
+    options: {
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              const value = context.raw;
+              const percent = ((value / total) * 100).toFixed(1);
+              return `${context.label}: ${percent}%`;
+            }
+          }
+        },
+        legend: {
+          position: "bottom"
+        }
+      }
     }
   });
 }
@@ -34,7 +58,11 @@ async function loadMonthlyChart() {
   const res = await fetch("/analytics/monthly");
   const data = await res.json();
 
-  if (Object.keys(data).length === 0) return;
+  if (!data || Object.keys(data).length === 0) {
+    canvas.parentElement.innerHTML =
+      "<p class='text-muted text-center'>No monthly data available</p>";
+    return;
+  }
 
   if (monthlyChart) monthlyChart.destroy();
 
@@ -43,9 +71,34 @@ async function loadMonthlyChart() {
     data: {
       labels: Object.keys(data),
       datasets: [{
+        label: "Total Spending (SGD)",
         data: Object.values(data),
-        tension: 0.3
+        tension: 0.3,
+        pointRadius: 4,
+        fill: false
       }]
+    },
+    options: {
+      plugins: {
+        legend: {
+          display: true
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: "Amount (SGD)"
+          }
+        },
+        x: {
+          title: {
+            display: true,
+            text: "Month"
+          }
+        }
+      }
     }
   });
 }
@@ -60,7 +113,7 @@ async function loadTransactionsTable() {
 
   tbody.innerHTML = "";
 
-  if (transactions.length === 0) {
+  if (!transactions || transactions.length === 0) {
     tbody.innerHTML = `
       <tr>
         <td colspan="4" class="text-center text-muted">
@@ -85,10 +138,16 @@ async function loadTransactionsTable() {
     });
 }
 
-/* ================= WHAT IF ================= */
+/* ================= WHAT-IF ANALYSIS ================= */
 async function runWhatIf() {
   const category = document.getElementById("whatIfCategory").value;
-  const delta = document.getElementById("whatIfDelta").value;
+  const delta = Number(document.getElementById("whatIfDelta").value);
+
+  if (isNaN(delta)) {
+    document.getElementById("whatIfResult").innerHTML =
+      "<p class='text-danger'>Please enter a valid number.</p>";
+    return;
+  }
 
   const res = await fetch("/what-if", {
     method: "POST",
@@ -104,27 +163,15 @@ async function runWhatIf() {
   `;
 }
 
-/* ================= LOAD WHEN TAB OPENS ================= */
-document
-  .querySelector('button[data-bs-target="#analytics"]')
-  .addEventListener("shown.bs.tab", () => {
-    loadCategoryChart();
-    loadMonthlyChart();
-    loadTransactionsTable();
-  });
-
-
+/* ================= LOAD WHEN ANALYTICS TAB OPENS ================= */
 const analyticsTabBtn =
   document.querySelector('button[data-bs-target="#analytics"]');
 
 if (analyticsTabBtn) {
   analyticsTabBtn.addEventListener("shown.bs.tab", () => {
     console.log("Analytics tab opened");
-
-    setTimeout(() => {
-      loadCategoryChart();π
-      loadMonthlyChart();
-      loadTransactionsTable();
-    }, 100);
+    loadCategoryChart();
+    loadMonthlyChart();
+    loadTransactionsTable();
   });
 }
