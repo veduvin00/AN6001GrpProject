@@ -5,6 +5,7 @@ from utils.finance import spending_by_category, monthly_spending
 from utils.what_if import simulate_category_change
 from utils.data_store import load_user
 from dotenv import load_dotenv
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -45,6 +46,7 @@ def transactions_data():
     user = load_user()
     return jsonify(user.get("transactions", []))
 
+
 @app.route("/analytics/category")
 def category_analytics():
     return jsonify(spending_by_category())
@@ -53,6 +55,7 @@ def category_analytics():
 @app.route("/analytics/monthly")
 def monthly_analytics():
     return jsonify(monthly_spending())
+
 
 @app.route("/dashboard")
 def dashboard():
@@ -69,35 +72,49 @@ def dashboard():
 # def chat():
 #     if "username" not in session:
 #         return jsonify({"reply": "Session expired. Please login again."})
-
+#
 #     user_message = request.json["message"]
-
+#
 #     bot_reply = handle_message(
 #         username=session["username"],
 #         user_input=user_message
 #     )
-
+#
 #     return jsonify({"reply": bot_reply})
+
 
 @app.route("/analytics-data")
 def analytics_data():
     from utils.finance import spending_by_category
     return jsonify(spending_by_category())
 
+
 @app.route("/add-transaction", methods=["POST"])
 def add_transaction():
     if "username" not in session:
-        return jsonify({"status": "error"})
+        return jsonify({"status": "error"}), 401
 
-    data = request.json
     from utils.data_store import load_user, save_user
 
-    user = load_user()
-    user["transactions"].append(data)
-    save_user(user)
+    try:
+    
+        transaction = {
+            "date": request.form["date"],
+            "amount": float(request.form["amount"]),
+            "category": request.form["category"],
+            "merchant": request.form.get("merchant", "")
+        }
 
-    return jsonify({"status": "success"})
+        user = load_user()
+        user.setdefault("transactions", []).append(transaction)
+        save_user(user)
 
+        return jsonify({"status": "success"}), 200
+
+    except Exception as e:
+        print("Add transaction error:", e)
+        return jsonify({"status": "error"}), 500
+# =====================================================
 
 
 @app.route("/what-if", methods=["POST"])
@@ -108,7 +125,6 @@ def what_if():
         delta=float(data["delta"])
     )
     return jsonify(result)
-
 
 
 @app.route("/logout")
