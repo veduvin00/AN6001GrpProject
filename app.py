@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = "dummy_bank_secret"
+app.secret_key = "dummy_bank_secret_hai"
 
 
 @app.route("/", methods=["GET", "POST"])
