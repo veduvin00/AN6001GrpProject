@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
-from utils.auth import authenticate
+from utils.auth import authenticate, register_user
 from utils.chatbot import handle_message
 from utils.finance import spending_by_category, monthly_spending
 from utils.what_if import simulate_category_change
@@ -10,6 +10,21 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = "dummy_bank_secret_hai"
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+
+        if register_user(username, password):
+            session["username"] = username
+            return redirect(url_for("dashboard"))
+
+        return render_template("login.html", error="User already exists")
+
+    return render_template("login.html", mode="register")
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -43,18 +58,27 @@ def chat():
 
 @app.route("/analytics/transactions")
 def transactions_data():
-    user = load_user()
+    # Update: Load the specific user from session
+    if "username" not in session:
+        return jsonify([])
+    user = load_user(session["username"])
     return jsonify(user.get("transactions", []))
 
 
 @app.route("/analytics/category")
 def category_analytics():
-    return jsonify(spending_by_category())
+    # Update: Pass username to finance function
+    if "username" not in session:
+        return jsonify({})
+    return jsonify(spending_by_category(session["username"]))
 
 
 @app.route("/analytics/monthly")
 def monthly_analytics():
-    return jsonify(monthly_spending())
+    # Update: Pass username to finance function
+    if "username" not in session:
+        return jsonify({})
+    return jsonify(monthly_spending(session["username"]))
 
 
 @app.route("/dashboard")
@@ -86,7 +110,9 @@ def dashboard():
 @app.route("/analytics-data")
 def analytics_data():
     from utils.finance import spending_by_category
-    return jsonify(spending_by_category())
+    if "username" not in session:
+        return jsonify({})
+    return jsonify(spending_by_category(session["username"]))
 
 
 @app.route("/add-transaction", methods=["POST"])
@@ -105,7 +131,11 @@ def add_transaction():
             "merchant": request.form.get("merchant", "")
         }
 
-        user = load_user()
+        # Update: Load specific user
+        user = load_user(session["username"])
+        if not user:
+             return jsonify({"status": "error"}), 404
+
         user.setdefault("transactions", []).append(transaction)
         save_user(user)
 
@@ -119,8 +149,13 @@ def add_transaction():
 
 @app.route("/what-if", methods=["POST"])
 def what_if():
+    # Update: Pass username to simulation
+    if "username" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+        
     data = request.json
     result = simulate_category_change(
+        username=session["username"],
         category=data["category"],
         delta=float(data["delta"])
     )
